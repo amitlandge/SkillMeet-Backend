@@ -5,6 +5,8 @@ import bcryptjs from "bcryptjs";
 import crypto from "crypto";
 import { getResetToken, hashPassword } from "../Utils/utility.js";
 import sendEmail from "../Utils/sendEmail.js";
+import { uploadImageToCloudinary } from "../Utils/uploadImage.js";
+import Profile from "../Model/profileSchema.js";
 const registerUser = async (req, res, next) => {
   try {
     const { email, name, password, role } = req.body;
@@ -188,6 +190,64 @@ const resetPassword = async (req, res, next) => {
     next(error);
   }
 };
+
+export const updateProfile = async (req, res, next) => {
+  try {
+    const {
+      fullName,
+      phone,
+
+      learningGoals,
+      preferredSubjects,
+      bio,
+      skills,
+      hourlyRate,
+      availability,
+    } = req.body;
+
+    const user = await User.findById(req.user);
+
+    if (!user) {
+      return next(new ErrorHandler("User Not Found", 404));
+    }
+    if (!req.file) {
+      return res.status(400).json({ message: "No file uploaded" });
+    }
+    const result = await uploadImageToCloudinary(req.file.buffer);
+    // ✅ Update fields dynamically
+    user.fullName = fullName || user.fullName;
+    const commonFields = { phone, profilePic: result.secure_url };
+    let profile;
+    if (user.role === "learner") {
+      profile = await Profile.create({
+        user: user._id,
+        ...commonFields,
+        learningGoals,
+        preferredSubjects,
+      });
+    }
+
+    if (user.role === "tutor") {
+      profile = await Profile.create({
+        user: user._id,
+        ...commonFields,
+        bio,
+        skills,
+        hourlyRate,
+        availability,
+      });
+    }
+
+    // Mark as completed if major fields are filled
+
+    await profile.save();
+
+    res.json({ message: "Profile updated successfully", user });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export {
   registerUser,
   loginUser,

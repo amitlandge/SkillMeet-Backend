@@ -1,6 +1,7 @@
 import express from "express";
 import {
   forgotPassword,
+  getCompleteProfile,
   getProfile,
   loginUser,
   logout,
@@ -20,4 +21,5 @@ router.get("/logout", auth, logout);
 router.post("/forgotpassword", forgotPassword);
 router.put("/resetpassword/:token", resetPassword);
 router.post("/createprofile", auth, upload.single("profilePic"), updateProfile);
+router.get("/getcompleteprofile", auth, getCompleteProfile);
 export default router;

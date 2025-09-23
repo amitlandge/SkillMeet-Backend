@@ -210,12 +210,18 @@ export const updateProfile = async (req, res, next) => {
     if (!user) {
       return next(new ErrorHandler("User Not Found", 404));
     }
+    console.log(req.file);
     if (!req.file) {
       return res.status(400).json({ message: "No file uploaded" });
+    }
+    const profileExists = await Profile.findOne({ user: req.user });
+    if (profileExists) {
+      return next(new ErrorHandler("Profile Already Exists", 400));
     }
     const result = await uploadImageToCloudinary(req.file.buffer);
     // ✅ Update fields dynamically
     user.fullName = fullName || user.fullName;
+    console.log(result);
     const commonFields = { phone, profilePic: result.secure_url };
     let profile;
     if (user.role === "learner") {
@@ -247,7 +253,22 @@ export const updateProfile = async (req, res, next) => {
     next(error);
   }
 };
-
+const getCompleteProfile = async (req, res, next) => {
+  try {
+    console.log(req.user);
+    await User.findById(req.user).lean();
+    const profile = await Profile.findOne({ user: req.user }).lean();
+    console.log(profile)
+    res.status(200).json({
+      message: "success",
+      profile: {
+        ...profile,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 export {
   registerUser,
   loginUser,
@@ -256,4 +277,5 @@ export {
   logout,
   forgotPassword,
   resetPassword,
+  getCompleteProfile,
 };
